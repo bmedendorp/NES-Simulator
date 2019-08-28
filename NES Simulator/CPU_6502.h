@@ -1,11 +1,15 @@
 #pragma once
 #include <cstdint>
+#include <string>
 #include "Memory.h"
 
 class CPU_6502
 {
 public:
 	CPU_6502(Memory *bus);
+
+	bool Clock();
+	void Step();
 
 private:
 
@@ -63,6 +67,8 @@ private:
 	uint16_t address;
 	uint8_t data;
 	Memory* bus;
+	std::string opCodeString;
+	std::string addressString;
 
 
 	// ****************
@@ -91,6 +97,7 @@ private:
 	bool AND();
 	bool EOR();
 	bool ADC();
+	bool SBC();
 	bool CMP();
 	bool CPX();
 	bool CPY();
@@ -161,12 +168,26 @@ private:
 	bool ARR();
 	bool XAA();
 	bool AXS();
-	bool SBC();
 	bool AHX();
 	bool SHY();
 	bool SHX();
 	bool TAS();
 	bool LAS();
 	bool KIL();
+
+	void AddCarry(uint8_t data);
+	void Compare(uint8_t a, uint8_t b);
+	uint8_t Decrement(uint8_t a);
+	uint8_t Increment(uint8_t a);
+
+	// ***************
+	// Status Register
+	// ***************
+	bool SetN(bool n);
+	bool SetV(bool v);
+	bool SetD(bool d);
+	bool SetI(bool i);
+	bool SetZ(bool z);
+	bool SetC(bool c);
 };
 

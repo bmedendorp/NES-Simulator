@@ -1,11 +1,22 @@
 #define OLC_PGE_APPLICATION
 #include "NES.h"
+#include "Memory.h"
+#include "CPU_6502.h"
 
 NES::NES()
 {
 	sAppName = "NES Simulator";
 	// Construct our 'physical' screen
 	Construct(256, 240, 4, 4);
+	ram = new Memory();
+	if (ram)
+	{
+		cpu = new CPU_6502(ram);
+	}
+	if (cpu)
+	{
+		cpu->Step();
+	}
 }
 
 bool NES::OnUserCreate()
