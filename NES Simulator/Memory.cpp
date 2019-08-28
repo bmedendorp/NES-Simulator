@@ -10,12 +10,12 @@ Memory::~Memory()
 	delete[] ram;
 }
 
-uint8_t Memory::Read(uint32_t address) const
+uint8_t Memory::Read(uint16_t address) const
 {
 	return ram[address];
 }
 
-void Memory::Write(uint32_t address, uint8_t data)
+void Memory::Write(uint16_t address, uint8_t data)
 {
 	ram[address] = data;
 }

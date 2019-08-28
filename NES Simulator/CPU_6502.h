@@ -1,10 +1,11 @@
 #pragma once
 #include <cstdint>
+#include "Memory.h"
 
 class CPU_6502
 {
 public:
-	CPU_6502();
+	CPU_6502(Memory *bus);
 
 private:
 
@@ -35,6 +36,35 @@ private:
 		{&a::BEQ, &a::REL, 2}, {&a::SBC, &a::IZY, 5}, {&a::KIL, &a::IMP, 1}, {&a::ISC, &a::IZY, 8}, {&a::NOP, &a::ZPX, 4}, {&a::SBC, &a::ZPX, 4}, {&a::INC, &a::ZPX, 6}, {&a::ISC, &a::ZPX, 6}, {&a::SED, &a::IMP, 2}, {&a::SBC, &a::ABY, 4}, {&a::NOP, &a::IMP, 2}, {&a::ISC, &a::ABY, 7}, {&a::NOP, &a::ABX, 4}, {&a::SBC, &a::ABX, 4}, {&a::INC, &a::ABX, 7}, {&a::ISC, &a::ABX, 7}
 	};
 
+
+	// *********
+	// Registers
+	// *********
+	uint8_t regA;	// Accumulator
+	uint8_t regX;	// X Register
+	uint8_t regY;	// Y Register
+	uint16_t pc;	// Program Counter
+	uint8_t sp;		// Stack Pointer
+	union {
+		uint8_t p;			// Entire Register
+		struct {
+			uint8_t N : 1;	// Negative Flag
+			uint8_t V : 1;	// Overflow Flag
+			uint8_t B : 2;	// "B" Flag
+			uint8_t D : 1;	// Decimal Flag
+			uint8_t I : 1;	// Interrupt Disable
+			uint8_t Z : 1;	// Zero Flag
+			uint8_t C : 1;	// Carry Flag
+		};
+	} status;			// Status Register
+
+	
+	// Class Globals
+	uint16_t address;
+	uint8_t data;
+	Memory* bus;
+
+
 	// ****************
 	// Addressing Modes
 	// ****************
@@ -50,6 +80,7 @@ private:
 	bool ABS();		// Absolute
 	bool REL();		// Relative
 	bool IND();		// Indirect
+
 
 	// ************
 	// Instructions
