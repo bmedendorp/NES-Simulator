@@ -45,6 +45,36 @@ void CPU_6502::Step()
 	while (!Clock());	// Keep clocking until instruction is finished
 }
 
+uint8_t CPU_6502::GetA() const
+{
+	return regA;
+}
+
+uint8_t CPU_6502::GetX() const
+{
+	return regX;
+}
+
+uint8_t CPU_6502::GetY() const
+{
+	return regY;
+}
+
+uint8_t CPU_6502::GetStatus() const
+{
+	return status.p;
+}
+
+uint16_t CPU_6502::GetProgramCounter() const
+{
+	return pc;
+}
+
+uint8_t CPU_6502::GetStackPointer() const
+{
+	return sp;
+}
+
 uint8_t CPU_6502::Disassemble(uint16_t programStart, uint8_t instructionCount, CPU_6502::DisassembleInfo* data, uint16_t maxBytes)
 {
 	// Save program counter

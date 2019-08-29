@@ -132,6 +132,7 @@
     <ClInclude Include="CPU_6502.h" />
     <ClInclude Include="Memory.h" />
     <ClInclude Include="NES.h" />
+    <ClInclude Include="olcPixelGameEngine.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -12,6 +12,12 @@ public:
 
 	bool Clock();
 	void Step();
+	uint8_t GetA() const;
+	uint8_t GetX() const;
+	uint8_t GetY() const;
+	uint8_t GetStatus() const;
+	uint16_t GetProgramCounter() const;
+	uint8_t GetStackPointer() const;
 
 	struct DisassembleInfo
 	{
@@ -63,13 +69,13 @@ private:
 	union {
 		uint8_t p;			// Entire Register
 		struct {
-			uint8_t N : 1;	// Negative Flag
-			uint8_t V : 1;	// Overflow Flag
-			uint8_t B : 2;	// "B" Flag
-			uint8_t D : 1;	// Decimal Flag
-			uint8_t I : 1;	// Interrupt Disable
-			uint8_t Z : 1;	// Zero Flag
 			uint8_t C : 1;	// Carry Flag
+			uint8_t Z : 1;	// Zero Flag
+			uint8_t I : 1;	// Interrupt Disable
+			uint8_t D : 1;	// Decimal Flag
+			uint8_t B : 2;	// "B" Flag
+			uint8_t V : 1;	// Overflot Flag
+			uint8_t N : 1;	// Negative Flag
 		};
 	} status;			// Status Register
 

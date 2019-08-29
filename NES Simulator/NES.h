@@ -9,10 +9,15 @@ public:
 	NES();
 
 private:
-	Memory *ram;
+	Memory *bus;
 	CPU_6502 *cpu;
 
 public:
 	bool OnUserCreate() override;
 	bool OnUserUpdate(float fElapsedTime) override;
+
+private:
+	void DumpMemory(int32_t x, int32_t y, uint16_t memAddress, uint8_t width, uint8_t height);
+	void DisplayRegisters(int32_t x, int32_t y);
+	void DisplayCode(int32_t x, int32_t y, CPU_6502::DisassembleInfo* data, uint8_t lines, uint8_t currentLine);
 };
