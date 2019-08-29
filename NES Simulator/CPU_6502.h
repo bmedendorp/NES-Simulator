@@ -85,7 +85,7 @@ private:
 	uint8_t data;
 	Memory* bus;
 	std::string opCodeString;
-	std::string addressString;
+	std::string operandString;
 
 
 	// ****************
@@ -104,7 +104,6 @@ private:
 	bool REL();		// Relative
 	bool IND();		// Indirect
 
-	void SetAddressString(uint16_t address);
 
 	// ************
 	// Instructions
