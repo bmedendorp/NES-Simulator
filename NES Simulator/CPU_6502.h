@@ -8,8 +8,10 @@ using namespace std;
 class CPU_6502
 {
 public:
-	CPU_6502(Memory *bus);
+	CPU_6502(Memory *bus, uint8_t disassembleLines = 13);
+	~CPU_6502();
 
+	void Reset();
 	bool Clock();
 	void Step();
 	uint8_t GetA() const;
@@ -19,14 +21,21 @@ public:
 	uint16_t GetProgramCounter() const;
 	uint8_t GetStackPointer() const;
 
-	struct DisassembleInfo
+	struct DisassembledInstruction
 	{
 		uint16_t address;
 		string instructionString;
 		uint8_t instructionSize;
 	};
 
+	struct DisassembleInfo
+	{
+		uint8_t count;
+		DisassembledInstruction* instructions;
+	};
+
 	uint8_t Disassemble(uint16_t programStart, uint8_t instructionCount, CPU_6502::DisassembleInfo* data, uint16_t maxBytes = 0);
+	const CPU_6502::DisassembleInfo* GetDisassembleInfo() const;
 
 private:
 
@@ -86,6 +95,13 @@ private:
 	Memory* bus;
 	std::string opCodeString;
 	std::string operandString;
+
+	// Disassembler Variables
+	uint8_t maxDisassemblySize;
+	uint8_t disassemblyIndex;
+	DisassembleInfo disassembleInfo;
+
+	void AdvanceDisassembler();
 
 
 	// ****************

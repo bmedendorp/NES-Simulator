@@ -29,18 +29,20 @@ bool NES::OnUserCreate()
 bool NES::OnUserUpdate(float fElapsedTime)
 {
 	// called once per frame, draws random coloured pixels
-	//for (int x = 0; x < ScreenWidth(); x++)
-	//	for (int y = 0; y < ScreenHeight(); y++)
-	//		Draw(x, y, olc::Pixel(rand() % 255, rand() % 255, rand() % 255));
+	olc::HWButton spaceStatus = GetKey(olc::Key::SPACE);
+	if (spaceStatus.bPressed)
+	{
+		cpu->Step();
+	}
+
 	Clear(olc::BLACK);
 	DumpMemory(5, 5, 0x0000, 16, 16);
 	DumpMemory(5, 185, 0xF00, 16, 16);
 	DisplayRegisters(442, 50);
 	if (cpu)
 	{
-		CPU_6502::DisassembleInfo disassembleInfo[13];
-		uint8_t instructionCount = cpu->Disassemble(0x0000, 13, disassembleInfo);
-		DisplayCode(442, 200, disassembleInfo, instructionCount, 0);
+		const CPU_6502::DisassembleInfo* disassembleInfo = cpu->GetDisassembleInfo();
+		DisplayCode(442, 200, disassembleInfo, disassembleInfo->count, cpu->GetProgramCounter());
 	}
 	return true;
 }
@@ -87,7 +89,7 @@ void NES::DisplayRegisters(int32_t x, int32_t y)
 		// Y Register
 		ss.str("");
 		ss << uppercase << setfill('0') << setw(2) << hex << (int)cpu->GetY();
-		DrawString(x, y + 20, "X: 0x" + ss.str());
+		DrawString(x, y + 20, "Y: 0x" + ss.str());
 
 		// Stack Pointer
 		ss.str("");
@@ -139,10 +141,10 @@ void NES::DisplayRegisters(int32_t x, int32_t y)
 	}
 }
 
-void NES::DisplayCode(int32_t x, int32_t y, CPU_6502::DisassembleInfo* data, uint8_t lines, uint8_t currentLine)
+void NES::DisplayCode(int32_t x, int32_t y, const CPU_6502::DisassembleInfo* data, uint8_t lines, uint16_t pc)
 {
 	for (int i = 0; i < lines; i++)
 	{
-		DrawString(x, y + 10 * i, data[i].instructionString, i == currentLine ? olc::RED : olc::GREY);
+		DrawString(x, y + 10 * i, data->instructions[i].instructionString, data->instructions[i].address == pc ? olc::RED : olc::GREY);
 	}
 }

@@ -6,10 +6,31 @@
 
 using namespace std;
 
-CPU_6502::CPU_6502(Memory* bus)
+CPU_6502::CPU_6502(Memory* bus, uint8_t disassembleLines)
 {
 	this->bus = bus;
+
+	maxDisassemblySize = disassembleLines;
+	disassembleInfo.instructions = new DisassembledInstruction[maxDisassemblySize];
+	Reset();
+}
+
+CPU_6502::~CPU_6502()
+{
+	delete[] disassembleInfo.instructions;
+}
+
+void CPU_6502::Reset()
+{
 	pc = 0x0000;
+	sp = 0x0000;
+	regA = regX = regY = 0x00;
+
+	disassemblyIndex = 0;
+	if (disassembleInfo.instructions)
+	{
+		disassembleInfo.count = Disassemble(pc, maxDisassemblySize, &disassembleInfo);
+	}
 }
 
 bool CPU_6502::Clock()
@@ -20,6 +41,7 @@ bool CPU_6502::Clock()
 	{
 		if (bus)
 		{
+			AdvanceDisassembler();
 			// Fetch next instruction
 			OpCode opCode = opCodes[bus->Read(pc++)];
 			// Determine address using refereced addressing mode
@@ -84,19 +106,33 @@ uint8_t CPU_6502::Disassemble(uint16_t programStart, uint8_t instructionCount, C
 	int i;
 	for (i = 0; i < instructionCount; i++)
 	{
-		data[i].address = pc;
+		data->instructions[i].address = pc;
 		OpCode opCode = opCodes[bus->Read(pc++)];
 		(this->*opCode.mode)();				// Get the arguments (address) string
 		(this->*opCode.instruction)(true);	// Get the opcode
-		if ((maxBytes && (pc - originalPC > maxBytes)) || pc < originalPC)
+		if ((maxBytes && (pc - originalPC > maxBytes)) || pc < programStart)
 			break;
-		data[i].instructionSize = pc - data[i].address;
-		data[i].instructionString = opCodeString + " " + operandString;
+		data->instructions[i].instructionSize = pc - data->instructions[i].address;
+		data->instructions[i].instructionString = opCodeString + " " + operandString;
 	}
 	pc = originalPC;	// Restore original program counter
-	return i;
+	return data->count = i;
 }
 
+const CPU_6502::DisassembleInfo* CPU_6502::GetDisassembleInfo() const
+{
+	return &disassembleInfo;
+}
+
+void CPU_6502::AdvanceDisassembler()
+{
+	disassemblyIndex++;
+	while (disassemblyIndex > disassembleInfo.count / 2 && disassembleInfo.count == maxDisassemblySize && disassembleInfo.instructions)
+	{
+		Disassemble(disassembleInfo.instructions[1].address, maxDisassemblySize, &disassembleInfo);
+		disassemblyIndex--;
+	}
+}
 
 // ****************
 // Addressing Modes
@@ -162,7 +198,7 @@ bool CPU_6502::IZX()		// Indexed Indirect
 		uint8_t pointer = bus->Read(pc++);
 		address = (bus->Read(pointer++ + regX) & 0x00FF) | (uint16_t)(bus->Read(pointer-- + regX) & 0x00FFF) << 8;
 		stringstream ss;
-		ss << uppercase << setfill('0') << setw(2) << hex << pointer;
+		ss << uppercase << setfill('0') << setw(2) << hex << (int)pointer;
 		operandString = "($" + ss.str() + ",X)";
 	}
 	return false;
@@ -174,7 +210,7 @@ bool CPU_6502::IZY()		// Indirect Indexed
 		uint8_t pointer = bus->Read(pc++);
 		address = (bus->Read(pointer++) | (uint16_t)(bus->Read(pointer--) & 0x00FF) << 8) + regY;
 		stringstream ss;
-		ss << uppercase << setfill('0') << setw(2) << hex << pointer;
+		ss << uppercase << setfill('0') << setw(2) << hex << (int)pointer;
 		operandString = "($" + ss.str() + "),Y";
 		if ((address & 0x00FF) < regY)
 			return true;
@@ -311,7 +347,7 @@ bool CPU_6502::SBC(bool disassemble)
 	opCodeString = "SBC";
 	if (!disassemble)
 	{
-		AddCarry(bus->Read(address) ^ 0xFF);		// SBC is identical to ADC (data EOR 0xFF) - One's complement
+		AddCarry(bus->Read(address) ^ 0xFF + 1);		// Subtract is the same as add negative
 	}
 	return true;
 }
@@ -401,12 +437,22 @@ bool CPU_6502::ASL(bool disassemble)
 	opCodeString = "ASL";
 	if (!disassemble)
 	{
-		uint8_t data = bus->Read(address);
-		SetC(data & 0x80);
-		data = data << 1;
-		bus->Write(address, data);
-		SetN(data & 0x80);
-		SetZ(data == 0);
+		if (operandString.compare("") != 0)
+		{
+			uint8_t data = bus->Read(address);
+			SetC(data & 0x80);
+			data = data << 1;
+			bus->Write(address, data);
+			SetN(data & 0x80);
+			SetZ(data == 0);
+		}
+		else
+		{
+			SetC(regA & 0x80);
+			regA = regA << 1;
+			SetN(regA & 0x80);
+			SetZ(regA == 0);
+		}
 	}
 	return false;
 }
@@ -415,13 +461,24 @@ bool CPU_6502::ROL(bool disassemble)
 	opCodeString = "ROL";
 	if (!disassemble)
 	{
-		uint8_t data = bus->Read(address);
-		uint8_t c = status.C;
-		SetC(data & 0x80);
-		data = (data << 1) | c;
-		bus->Write(address, data);
-		SetN(data & 0x80);
-		SetZ(data == 0);
+		if (operandString.compare("") != 0)
+		{
+			uint8_t data = bus->Read(address);
+			uint8_t c = status.C;
+			SetC(data & 0x80);
+			data = (data << 1) | c;
+			bus->Write(address, data);
+			SetN(data & 0x80);
+			SetZ(data == 0);
+		}
+		else
+		{
+			uint8_t c = status.C;
+			SetC(regA & 0x80);
+			regA = (regA << 1) | c;
+			SetN(regA & 0x80);
+			SetZ(regA == 0);
+		}
 	}
 	return false;
 }
@@ -430,12 +487,22 @@ bool CPU_6502::LSR(bool disassemble)
 	opCodeString = "LSR";
 	if (!disassemble)
 	{
-		uint8_t data = bus->Read(address);
-		SetC(data & 0x01);
-		data = data >> 1;
-		bus->Write(address, data);
-		SetN(data & 0x80);
-		SetZ(data == 0);
+		if (operandString.compare("") != 0)
+		{
+			uint8_t data = bus->Read(address);
+			SetC(data & 0x01);
+			data = data >> 1;
+			bus->Write(address, data);
+			SetN(data & 0x80);
+			SetZ(data == 0);
+		}
+		else
+		{
+			SetC(regA & 0x01);
+			regA = regA >> 1;
+			SetN(regA & 0x80);
+			SetZ(regA == 0);
+		}
 	}
 	return false;
 }
@@ -444,13 +511,24 @@ bool CPU_6502::ROR(bool disassemble)
 	opCodeString = "ROR";
 	if (!disassemble)
 	{
-		uint8_t data = bus->Read(address);
-		uint8_t c = status.C << 7;
-		SetC(data & 0x01);
-		data = (data >> 1) | c;
-		bus->Write(address, data);
-		SetN(data & 0x80);
-		SetZ(data == 0);
+		if (operandString.compare("") != 0)
+		{
+			uint8_t data = bus->Read(address);
+			uint8_t c = status.C << 7;
+			SetC(data & 0x01);
+			data = (data >> 1) | c;
+			bus->Write(address, data);
+			SetN(data & 0x80);
+			SetZ(data == 0);
+		}
+		else
+		{
+			uint8_t c = status.C << 7;
+			SetC(regA & 0x01);
+			regA = (regA >> 1) | c;
+			SetN(regA & 0x80);
+			SetZ(regA == 0);
+		}
 	}
 	return false;
 }
@@ -461,16 +539,18 @@ bool CPU_6502::LDA(bool disassemble)
 	opCodeString = "LDA";
 	if (!disassemble)
 	{
-
+		regA = bus->Read(address);
+		SetN(regA & 0x80);
+		SetZ(regA == 0);
 	}
-	return false;
+	return true;
 }
 bool CPU_6502::STA(bool disassemble)
 {
 	opCodeString = "STA";
 	if (!disassemble)
 	{
-
+		bus->Write(address, regA);
 	}
 	return false;
 }
@@ -479,16 +559,18 @@ bool CPU_6502::LDX(bool disassemble)
 	opCodeString = "LDX";
 	if (!disassemble)
 	{
-
+		regX = bus->Read(address);
+		SetN(regX & 0x80);
+		SetZ(regX == 0);
 	}
-	return false;
+	return true;
 }
 bool CPU_6502::STX(bool disassemble)
 {
 	opCodeString = "STX";
 	if (!disassemble)
 	{
-
+		bus->Write(address, regX);
 	}
 	return false;
 }
@@ -497,16 +579,18 @@ bool CPU_6502::LDY(bool disassemble)
 	opCodeString = "LDY";
 	if (!disassemble)
 	{
-
+		regY = bus->Read(address);
+		SetN(regY & 0x80);
+		SetZ(regY == 0);
 	}
-	return false;
+	return true;
 }
 bool CPU_6502::STY(bool disassemble)
 {
 	opCodeString = "STY";
 	if (!disassemble)
 	{
-
+		bus->Write(address, regY);
 	}
 	return false;
 }
@@ -515,7 +599,9 @@ bool CPU_6502::TAX(bool disassemble)
 	opCodeString = "TAX";
 	if (!disassemble)
 	{
-
+		regX = regA;
+		SetN(regX & 0x80);
+		SetZ(regX == 0);
 	}
 	return false;
 }
@@ -524,7 +610,9 @@ bool CPU_6502::TXA(bool disassemble)
 	opCodeString = "TXA";
 	if (!disassemble)
 	{
-
+		regA = regX;
+		SetN(regA & 0x80);
+		SetZ(regA == 0);
 	}
 	return false;
 }
@@ -533,7 +621,9 @@ bool CPU_6502::TAY(bool disassemble)
 	opCodeString = "TAY";
 	if (!disassemble)
 	{
-
+		regY = regA;
+		SetN(regY & 0x80);
+		SetZ(regY == 0);
 	}
 	return false;
 }
@@ -542,7 +632,9 @@ bool CPU_6502::TYA(bool disassemble)
 	opCodeString = "TYA";
 	if (!disassemble)
 	{
-
+		regA = regY;
+		SetN(regA & 0x80);
+		SetZ(regA == 0);
 	}
 	return false;
 }
@@ -551,7 +643,9 @@ bool CPU_6502::TSX(bool disassemble)
 	opCodeString = "TSX";
 	if (!disassemble)
 	{
-
+		regX = sp;
+		SetN(regX & 0x80);
+		SetZ(regX == 0);
 	}
 	return false;
 }
@@ -560,7 +654,7 @@ bool CPU_6502::TXS(bool disassemble)
 	opCodeString = "TXS";
 	if (!disassemble)
 	{
-
+		sp = regX;
 	}
 	return false;
 }
@@ -569,7 +663,9 @@ bool CPU_6502::PLA(bool disassemble)
 	opCodeString = "PLA";
 	if (!disassemble)
 	{
-
+		regA = bus->Read(++sp);
+		SetN(regA & 0x80);
+		SetZ(regA == 0);
 	}
 	return false;
 }
@@ -578,7 +674,7 @@ bool CPU_6502::PHA(bool disassemble)
 	opCodeString = "PHA";
 	if (!disassemble)
 	{
-
+		bus->Write(sp--, regA);
 	}
 	return false;
 }
@@ -587,7 +683,7 @@ bool CPU_6502::PLP(bool disassemble)
 	opCodeString = "PLP";
 	if (!disassemble)
 	{
-
+		status.p = bus->Read(++sp);
 	}
 	return false;
 }
@@ -596,7 +692,7 @@ bool CPU_6502::PHP(bool disassemble)
 	opCodeString = "PHP";
 	if (!disassemble)
 	{
-
+		bus->Write(sp--, status.p);
 	}
 	return false;
 }
