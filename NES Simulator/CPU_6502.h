@@ -14,6 +14,7 @@ public:
 	void Reset();
 	bool Clock();
 	void Step();
+	void IRQ();
 	uint8_t GetA() const;
 	uint8_t GetX() const;
 	uint8_t GetY() const;
