@@ -15,12 +15,15 @@ public:
 	bool Clock();
 	void Step();
 	void IRQ();
+	void NMI();
 	uint8_t GetA() const;
 	uint8_t GetX() const;
 	uint8_t GetY() const;
 	uint8_t GetStatus() const;
 	uint16_t GetProgramCounter() const;
 	uint8_t GetStackPointer() const;
+
+	enum ExceptionType {EXCEPTION_INVALID_INTERRUPT};
 
 	struct DisassembledInstruction
 	{
@@ -39,6 +42,8 @@ public:
 	const CPU_6502::DisassembleInfo* GetDisassembleInfo() const;
 
 private:
+
+	enum InterruptType { INTERRUPT_NONE, INTERRUPT_IRQ, INTERRUPT_NMI };
 
 	struct OpCode
 	{
@@ -96,6 +101,7 @@ private:
 	Memory* bus;
 	std::string opCodeString;
 	std::string operandString;
+	InterruptType currentInterrupt;
 
 	// Disassembler Variables
 	uint8_t maxDisassemblySize;
@@ -174,6 +180,7 @@ private:
 	bool BNE(bool disassemble = false);
 	bool BEQ(bool disassemble = false);
 	bool BRK(bool disassemble = false);
+	bool INT(bool disassemble = false);
 	bool RTI(bool disassemble = false);
 	bool JSR(bool disassemble = false);
 	bool RTS(bool disassemble = false);

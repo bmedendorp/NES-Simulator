@@ -25,6 +25,7 @@ void CPU_6502::Reset()
 	pc = bus->Read(0xFFFC) | (uint16_t)(bus->Read(0xFFFD) << 8);
 	sp = 0xFF;
 	regA = regX = regY = 0x00;
+	currentInterrupt = InterruptType::INTERRUPT_NONE;
 
 	disassemblyIndex = 0;
 	if (disassembleInfo.instructions)
@@ -41,14 +42,41 @@ bool CPU_6502::Clock()
 	{
 		if (bus)
 		{
-			AdvanceDisassembler();
-			// Fetch next instruction
-			OpCode opCode = opCodes[bus->Read(pc++)];
-			// Determine address using refereced addressing mode
-			(this->*opCode.mode)();
-			// Perform the requested opcode instruction
-			(this->*opCode.instruction)(false);
-			currentCycle = opCode.cycles - 1;
+			if (currentInterrupt = INTERRUPT_NONE)
+			{
+				AdvanceDisassembler();
+				// Fetch next instruction
+				OpCode opCode = opCodes[bus->Read(pc++)];
+				// Determine address using refereced addressing mode
+				bool extraCycle1 = (this->*opCode.mode)();
+				// Perform the requested opcode instruction
+				bool extraCycle2 = (this->*opCode.instruction)(false);
+				currentCycle = opCode.cycles - 1;
+				if (extraCycle1 & extraCycle2)
+					currentCycle++;
+			}
+			else
+			{
+				// AdvanceDisassembler();
+				OpCode opCode = { &CPU_6502::INT, &CPU_6502::IMP, 7 };	// Interrupt handling 'instruction'
+				operandString = "";
+				// Set address for proper interrupt handling routine
+				switch (currentInterrupt)
+				{
+				case INTERRUPT_IRQ:
+					address = 0xFFFE;
+					break;
+				case INTERRUPT_NMI:
+					address = 0xFFFA;
+					break;
+				default:
+					throw ExceptionType::EXCEPTION_INVALID_INTERRUPT;
+				}
+				// Handle the interrupt
+				(this->*opCode.instruction)(false);
+				currentCycle = opCode.cycles - 1;
+				currentInterrupt = INTERRUPT_NONE;
+			}
 		}
 	}
 	else
@@ -65,6 +93,17 @@ bool CPU_6502::Clock()
 void CPU_6502::Step()
 {
 	while (!Clock());	// Keep clocking until instruction is finished
+}
+
+void CPU_6502::IRQ()
+{
+	if (!status.I)
+		currentInterrupt = INTERRUPT_IRQ;
+}
+
+void CPU_6502::NMI()
+{
+	currentInterrupt = INTERRUPT_NMI;
 }
 
 uint8_t CPU_6502::GetA() const
@@ -789,6 +828,20 @@ bool CPU_6502::BRK(bool disassemble)
 		bus->Write(sp-- | 0x0100, pc & 0x00FF);
 		bus->Write(sp-- | 0x0100, status.p);
 		pc = bus->Read(0xFFFE) | (bus->Read(0xFFFF) << 8);
+		status.I = 1;
+	}
+	return false;
+}
+bool CPU_6502::INT(bool disassemble)
+{
+	opCodeString = "INT";
+	if (!disassemble)
+	{
+		status.B = 0x10;
+		bus->Write(sp-- | 0x0100, (pc & 0xFF00) >> 8);
+		bus->Write(sp-- | 0x0100, pc & 0x00FF);
+		bus->Write(sp-- | 0x0100, status.p);
+		pc = bus->Read(address) | (bus->Read(address + 1) << 8);
 		status.I = 1;
 	}
 	return false;
