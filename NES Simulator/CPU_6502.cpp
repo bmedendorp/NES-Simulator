@@ -17,11 +17,15 @@ CPU_6502::CPU_6502(Memory* bus, uint8_t disassembleLines)
 
 CPU_6502::~CPU_6502()
 {
-	delete[] disassembleInfo.instructions;
+	if (disassembleInfo.instructions)
+		delete[] disassembleInfo.instructions;
 }
 
 void CPU_6502::Reset()
 {
+	if (!bus)
+		throw ExceptionType::EXCEPTION_NULL_BUS_PTR;
+
 	pc = bus->Read(0xFFFC) | (uint16_t)(bus->Read(0xFFFD) << 8);
 	sp = 0xFF;
 	regA = regX = regY = 0x00;
@@ -40,43 +44,43 @@ bool CPU_6502::Clock()
 
 	if (currentCycle == 0)
 	{
-		if (bus)
+		if (!bus)
+			throw ExceptionType::EXCEPTION_NULL_BUS_PTR;
+
+		if (currentInterrupt == INTERRUPT_NONE)
 		{
-			if (currentInterrupt = INTERRUPT_NONE)
+			AdvanceDisassembler();
+			// Fetch next instruction
+			OpCode opCode = opCodes[bus->Read(pc++)];
+			// Determine address using refereced addressing mode
+			bool extraCycle1 = (this->*opCode.mode)();
+			// Perform the requested opcode instruction
+			bool extraCycle2 = (this->*opCode.instruction)(false);
+			currentCycle = opCode.cycles - 1;
+			if (extraCycle1 & extraCycle2)
+				currentCycle++;
+		}
+		else
+		{
+			// AdvanceDisassembler();
+			OpCode opCode = { &CPU_6502::INT, &CPU_6502::IMP, 7 };	// Interrupt handling 'instruction'
+			operandString = "";
+			// Set address for proper interrupt handling routine
+			switch (currentInterrupt)
 			{
-				AdvanceDisassembler();
-				// Fetch next instruction
-				OpCode opCode = opCodes[bus->Read(pc++)];
-				// Determine address using refereced addressing mode
-				bool extraCycle1 = (this->*opCode.mode)();
-				// Perform the requested opcode instruction
-				bool extraCycle2 = (this->*opCode.instruction)(false);
-				currentCycle = opCode.cycles - 1;
-				if (extraCycle1 & extraCycle2)
-					currentCycle++;
+			case INTERRUPT_IRQ:
+				address = 0xFFFE;
+				break;
+			case INTERRUPT_NMI:
+				address = 0xFFFA;
+				break;
+			default:
+				throw ExceptionType::EXCEPTION_INVALID_INTERRUPT;
 			}
-			else
-			{
-				// AdvanceDisassembler();
-				OpCode opCode = { &CPU_6502::INT, &CPU_6502::IMP, 7 };	// Interrupt handling 'instruction'
-				operandString = "";
-				// Set address for proper interrupt handling routine
-				switch (currentInterrupt)
-				{
-				case INTERRUPT_IRQ:
-					address = 0xFFFE;
-					break;
-				case INTERRUPT_NMI:
-					address = 0xFFFA;
-					break;
-				default:
-					throw ExceptionType::EXCEPTION_INVALID_INTERRUPT;
-				}
-				// Handle the interrupt
-				(this->*opCode.instruction)(false);
-				currentCycle = opCode.cycles - 1;
-				currentInterrupt = INTERRUPT_NONE;
-			}
+			// Handle the interrupt
+			(this->*opCode.instruction)(false);
+			currentCycle = opCode.cycles - 1;
+			currentInterrupt = INTERRUPT_NONE;
 		}
 	}
 	else
@@ -138,6 +142,9 @@ uint8_t CPU_6502::GetStackPointer() const
 
 uint8_t CPU_6502::Disassemble(uint16_t programStart, uint8_t instructionCount, CPU_6502::DisassembleInfo* data, uint16_t maxBytes)
 {
+	if (!bus)
+		throw ExceptionType::EXCEPTION_NULL_BUS_PTR;
+
 	// Save program counter
 	uint16_t originalPC = pc;
 
@@ -178,82 +185,64 @@ void CPU_6502::AdvanceDisassembler()
 // ****************
 bool CPU_6502::ZPX()		// Zero Page Indexed (X)
 {
-	if (bus)
-	{
-		uint8_t base = bus->Read(pc++);
-		address = (base + regX) && 0x00FF;
-		stringstream ss;
-		ss << uppercase << setfill('0') << setw(2) << hex << base;
-		operandString = "$" + ss.str() + ",X";
-	}
+	uint8_t base = bus->Read(pc++);
+	address = (base + regX) && 0x00FF;
+	stringstream ss;
+	ss << uppercase << setfill('0') << setw(2) << hex << base;
+	operandString = "$" + ss.str() + ",X";
 	return false;
 }
 bool CPU_6502::ZPY()		// Zero Page Indexed (Y)
 {
-	if (bus)
-	{
-		uint8_t base = bus->Read(pc++);
-		address = (base + regY) && 0x00FF;
-		stringstream ss;
-		ss << uppercase << setfill('0') << setw(2) << hex << base;
-		operandString = "$" + ss.str() + ",Y";
-	}
+	uint8_t base = bus->Read(pc++);
+	address = (base + regY) && 0x00FF;
+	stringstream ss;
+	ss << uppercase << setfill('0') << setw(2) << hex << base;
+	operandString = "$" + ss.str() + ",Y";
 	return false;
 }
 bool CPU_6502::ABX()		// Absolute Indexed (X)
 {
-	if (bus)
-	{
-		uint8_t lsb = bus->Read(pc++);
-		uint16_t msb = (uint16_t)bus->Read(pc++);
-		address = (lsb + regX) | (msb << 8);
-		stringstream ss;
-		ss << uppercase << setfill('0') << setw(4) << hex << (lsb | (msb << 8));
-		operandString = "$" + ss.str() + ",X";
-		if ((address & 0x00FF) < regX)
-			return true;
-	}
+	uint8_t lsb = bus->Read(pc++);
+	uint16_t msb = (uint16_t)bus->Read(pc++);
+	address = (lsb + regX) | (msb << 8);
+	stringstream ss;
+	ss << uppercase << setfill('0') << setw(4) << hex << (lsb | (msb << 8));
+	operandString = "$" + ss.str() + ",X";
+	if ((address & 0x00FF) < regX)
+		return true;
 	return false;
 }
 bool CPU_6502::ABY()		// Absolute Indexed (Y)
 {
-	if (bus)
-	{
-		uint8_t lsb = bus->Read(pc++);
-		uint16_t msb = (uint16_t)bus->Read(pc++);
-		address = (lsb + regY) | (msb << 8);
-		stringstream ss;
-		ss << uppercase << setfill('0') << setw(4) << hex << (lsb | (msb << 8));
-		operandString = "$" + ss.str() + ",Y";
-		if ((address & 0x00FF) < regY)
-			return true;
-	}
+	uint8_t lsb = bus->Read(pc++);
+	uint16_t msb = (uint16_t)bus->Read(pc++);
+	address = (lsb + regY) | (msb << 8);
+	stringstream ss;
+	ss << uppercase << setfill('0') << setw(4) << hex << (lsb | (msb << 8));
+	operandString = "$" + ss.str() + ",Y";
+	if ((address & 0x00FF) < regY)
+		return true;
 	return false;
 }
 bool CPU_6502::IZX()		// Indexed Indirect
 {
-	if (bus)
-	{
-		uint8_t pointer = bus->Read(pc++);
-		address = (bus->Read(pointer++ + regX) & 0x00FF) | (uint16_t)(bus->Read(pointer-- + regX) & 0x00FFF) << 8;
-		stringstream ss;
-		ss << uppercase << setfill('0') << setw(2) << hex << (int)pointer;
-		operandString = "($" + ss.str() + ",X)";
-	}
+	uint8_t pointer = bus->Read(pc++);
+	address = (bus->Read(pointer++ + regX) & 0x00FF) | (uint16_t)(bus->Read(pointer-- + regX) & 0x00FFF) << 8;
+	stringstream ss;
+	ss << uppercase << setfill('0') << setw(2) << hex << (int)pointer;
+	operandString = "($" + ss.str() + ",X)";
 	return false;
 }
 bool CPU_6502::IZY()		// Indirect Indexed
 {
-	if (bus)
-	{
-		uint8_t pointer = bus->Read(pc++);
-		address = (bus->Read(pointer++) | (uint16_t)(bus->Read(pointer--) & 0x00FF) << 8) + regY;
-		stringstream ss;
-		ss << uppercase << setfill('0') << setw(2) << hex << (int)pointer;
-		operandString = "($" + ss.str() + "),Y";
-		if ((address & 0x00FF) < regY)
-			return true;
-	}
+	uint8_t pointer = bus->Read(pc++);
+	address = (bus->Read(pointer++) | (uint16_t)(bus->Read(pointer--) & 0x00FF) << 8) + regY;
+	stringstream ss;
+	ss << uppercase << setfill('0') << setw(2) << hex << (int)pointer;
+	operandString = "($" + ss.str() + "),Y";
+	if ((address & 0x00FF) < regY)
+		return true;
 	return false;
 }
 bool CPU_6502::IMP()		// Implicit
@@ -263,73 +252,58 @@ bool CPU_6502::IMP()		// Implicit
 }
 bool CPU_6502::IMM()		// Immediate
 {
-	if (bus)
-	{
-		address = pc++;
-		stringstream ss;
-		ss << uppercase << setfill('0') << setw(2) << hex << (int)bus->Read(address);
-		operandString = "#" + ss.str();
-	}
+	address = pc++;
+	stringstream ss;
+	ss << uppercase << setfill('0') << setw(2) << hex << (int)bus->Read(address);
+	operandString = "#" + ss.str();
 	return false;
 }
 bool CPU_6502::ZP()			// Zero Page
 {
-	if (bus)
-	{
-		address = bus->Read(pc++);
-		stringstream ss;
-		ss << uppercase << setfill('0') << setw(2) << hex << address;
-		operandString = "$" + ss.str();
-	}
+	address = bus->Read(pc++);
+	stringstream ss;
+	ss << uppercase << setfill('0') << setw(2) << hex << address;
+	operandString = "$" + ss.str();
 	return false;
 }
 bool CPU_6502::ABS()		// Absolute
 {
-	if (bus)
-	{
-		address = bus->Read(pc++) | (uint16_t)(bus->Read(pc++) << 8);
-		stringstream ss;
-		ss << uppercase << setfill('0') << setw(4) << hex << address;
-		operandString = "$" + ss.str();
-	}
+	address = bus->Read(pc++) | (uint16_t)(bus->Read(pc++) << 8);
+	stringstream ss;
+	ss << uppercase << setfill('0') << setw(4) << hex << address;
+	operandString = "$" + ss.str();
 	return false;
 }
 bool CPU_6502::REL()		// Relative
 {
-	if (bus)
+	uint8_t offset = bus->Read(pc++);
+	stringstream ss;
+	ss << uppercase << setfill('0') << setw(2) << hex << offset;
+	operandString = "$" + ss.str();
+	if (offset & 0x80)
 	{
-		uint8_t offset = bus->Read(pc++);
-		stringstream ss;
-		ss << uppercase << setfill('0') << setw(2) << hex << offset;
-		operandString = "$" + ss.str();
-		if (offset & 0x80)
-		{
-			// Offset is negative, subtract 2's compliment from pc
-			offset ^= 0xFF;
-			offset++;
-			address = pc - offset;
-			if ((address & 0x00FF) > offset)
-				return true;
-		} 
-		else
-		{
-			address = pc + offset;
-			if ((address & 0x00FF) < offset)
-				return true;
-		}
+		// Offset is negative, subtract 2's compliment from pc
+		offset ^= 0xFF;
+		offset++;
+		address = pc - offset;
+		if ((address & 0x00FF) > offset)
+			return true;
+	} 
+	else
+	{
+		address = pc + offset;
+		if ((address & 0x00FF) < offset)
+			return true;
 	}
 	return false;
 }
 bool CPU_6502::IND()		// Indirect
 {
-	if (bus)
-	{
-		uint16_t pointer = bus->Read(pc++) | (uint16_t)(bus->Read(pc++) << 8);
-		address = bus->Read(pointer++) | (uint16_t)(bus->Read(pointer) << 8);
-		stringstream ss;
-		ss << uppercase << setfill('0') << setw(4) << hex << pointer;
-		operandString = "($" + ss.str() + ")";
-	}
+	uint16_t pointer = bus->Read(pc++) | (uint16_t)(bus->Read(pc++) << 8);
+	address = bus->Read(pointer++) | (uint16_t)(bus->Read(pointer) << 8);
+	stringstream ss;
+	ss << uppercase << setfill('0') << setw(4) << hex << pointer;
+	operandString = "($" + ss.str() + ")";
 	return false;
 }
 
