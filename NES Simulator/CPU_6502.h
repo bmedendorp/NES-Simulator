@@ -3,6 +3,8 @@
 #include <string>
 #include "Memory.h"
 
+using namespace std;
+
 class CPU_6502
 {
 public:
@@ -11,11 +13,20 @@ public:
 	bool Clock();
 	void Step();
 
+	struct DisassembleInfo
+	{
+		uint16_t address;
+		string instructionString;
+		uint8_t instructionSize;
+	};
+
+	uint8_t Disassemble(uint16_t programStart, uint8_t instructionCount, CPU_6502::DisassembleInfo* data, uint16_t maxBytes = 0);
+
 private:
 
 	struct OpCode
 	{
-		bool (CPU_6502::*instruction)();
+		bool (CPU_6502::*instruction)(bool);
 		bool (CPU_6502::*mode)();
 		uint8_t cycles;
 	};
@@ -87,93 +98,94 @@ private:
 	bool REL();		// Relative
 	bool IND();		// Indirect
 
+	void SetAddressString(uint16_t address);
 
 	// ************
 	// Instructions
 	// ************
 	
 	// Logical and Arithmetic Commands
-	bool ORA();
-	bool AND();
-	bool EOR();
-	bool ADC();
-	bool SBC();
-	bool CMP();
-	bool CPX();
-	bool CPY();
-	bool DEC();
-	bool DEX();
-	bool DEY();
-	bool INC();
-	bool INX();
-	bool INY();
-	bool ASL();
-	bool ROL();
-	bool LSR();
-	bool ROR();
+	bool ORA(bool disassemble = false);
+	bool AND(bool disassemble = false);
+	bool EOR(bool disassemble = false);
+	bool ADC(bool disassemble = false);
+	bool SBC(bool disassemble = false);
+	bool CMP(bool disassemble = false);
+	bool CPX(bool disassemble = false);
+	bool CPY(bool disassemble = false);
+	bool DEC(bool disassemble = false);
+	bool DEX(bool disassemble = false);
+	bool DEY(bool disassemble = false);
+	bool INC(bool disassemble = false);
+	bool INX(bool disassemble = false);
+	bool INY(bool disassemble = false);
+	bool ASL(bool disassemble = false);
+	bool ROL(bool disassemble = false);
+	bool LSR(bool disassemble = false);
+	bool ROR(bool disassemble = false);
 
 	// Move Commands
-	bool LDA();
-	bool STA();
-	bool LDX();
-	bool STX();
-	bool LDY();
-	bool STY();
-	bool TAX();
-	bool TXA();
-	bool TAY();
-	bool TYA();
-	bool TSX();
-	bool TXS();
-	bool PLA();
-	bool PHA();
-	bool PLP();
-	bool PHP();
+	bool LDA(bool disassemble = false);
+	bool STA(bool disassemble = false);
+	bool LDX(bool disassemble = false);
+	bool STX(bool disassemble = false);
+	bool LDY(bool disassemble = false);
+	bool STY(bool disassemble = false);
+	bool TAX(bool disassemble = false);
+	bool TXA(bool disassemble = false);
+	bool TAY(bool disassemble = false);
+	bool TYA(bool disassemble = false);
+	bool TSX(bool disassemble = false);
+	bool TXS(bool disassemble = false);
+	bool PLA(bool disassemble = false);
+	bool PHA(bool disassemble = false);
+	bool PLP(bool disassemble = false);
+	bool PHP(bool disassemble = false);
 
 	// Jump/Flag Commands
-	bool BPL();
-	bool BMI();
-	bool BVC();
-	bool BVS();
-	bool BCC();
-	bool BCS();
-	bool BNE();
-	bool BEQ();
-	bool BRK();
-	bool RTI();
-	bool JSR();
-	bool RTS();
-	bool JMP();
-	bool BIT();
-	bool CLC();
-	bool SEC();
-	bool CLD();
-	bool SED();
-	bool CLI();
-	bool SEI();
-	bool CLV();
-	bool NOP();
+	bool BPL(bool disassemble = false);
+	bool BMI(bool disassemble = false);
+	bool BVC(bool disassemble = false);
+	bool BVS(bool disassemble = false);
+	bool BCC(bool disassemble = false);
+	bool BCS(bool disassemble = false);
+	bool BNE(bool disassemble = false);
+	bool BEQ(bool disassemble = false);
+	bool BRK(bool disassemble = false);
+	bool RTI(bool disassemble = false);
+	bool JSR(bool disassemble = false);
+	bool RTS(bool disassemble = false);
+	bool JMP(bool disassemble = false);
+	bool BIT(bool disassemble = false);
+	bool CLC(bool disassemble = false);
+	bool SEC(bool disassemble = false);
+	bool CLD(bool disassemble = false);
+	bool SED(bool disassemble = false);
+	bool CLI(bool disassemble = false);
+	bool SEI(bool disassemble = false);
+	bool CLV(bool disassemble = false);
+	bool NOP(bool disassemble = false);
 
 	// Illegal Opcodes
-	bool SLO();
-	bool RLA();
-	bool SRE();
-	bool RRA();
-	bool SAX();
-	bool LAX();
-	bool DCP();
-	bool ISC();
-	bool ANC();
-	bool ALR();
-	bool ARR();
-	bool XAA();
-	bool AXS();
-	bool AHX();
-	bool SHY();
-	bool SHX();
-	bool TAS();
-	bool LAS();
-	bool KIL();
+	bool SLO(bool disassemble = false);
+	bool RLA(bool disassemble = false);
+	bool SRE(bool disassemble = false);
+	bool RRA(bool disassemble = false);
+	bool SAX(bool disassemble = false);
+	bool LAX(bool disassemble = false);
+	bool DCP(bool disassemble = false);
+	bool ISC(bool disassemble = false);
+	bool ANC(bool disassemble = false);
+	bool ALR(bool disassemble = false);
+	bool ARR(bool disassemble = false);
+	bool XAA(bool disassemble = false);
+	bool AXS(bool disassemble = false);
+	bool AHX(bool disassemble = false);
+	bool SHY(bool disassemble = false);
+	bool SHX(bool disassemble = false);
+	bool TAS(bool disassemble = false);
+	bool LAS(bool disassemble = false);
+	bool KIL(bool disassemble = false);
 
 	void AddCarry(uint8_t data);
 	void Compare(uint8_t a, uint8_t b);

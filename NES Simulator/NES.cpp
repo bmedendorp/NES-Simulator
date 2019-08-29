@@ -2,6 +2,9 @@
 #include "NES.h"
 #include "Memory.h"
 #include "CPU_6502.h"
+#include <iostream>
+
+using namespace std;
 
 NES::NES()
 {
@@ -15,7 +18,12 @@ NES::NES()
 	}
 	if (cpu)
 	{
-		cpu->Step();
+		CPU_6502::DisassembleInfo disassembleInfo[8];
+		uint8_t instructionCount = cpu->Disassemble(0x0000, 8, disassembleInfo);
+		for (int i = 0; i < instructionCount; i++)
+		{
+			cout << disassembleInfo[i].instructionString << endl;
+		}
 	}
 }
 
