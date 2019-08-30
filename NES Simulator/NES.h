@@ -2,6 +2,7 @@
 #include "olcPixelGameEngine.h"
 #include "Memory.h"
 #include "CPU_6502.h"
+#include "NESLoader.h"
 
 class NES : public olc::PixelGameEngine
 {
@@ -11,6 +12,7 @@ public:
 private:
 	Memory *bus;
 	CPU_6502 *cpu;
+	NESLoader* loader;
 
 public:
 	bool OnUserCreate() override;

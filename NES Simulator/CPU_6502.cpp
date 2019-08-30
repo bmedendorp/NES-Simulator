@@ -173,6 +173,25 @@ const CPU_6502::DisassembleInfo* CPU_6502::GetDisassembleInfo() const
 void CPU_6502::AdvanceDisassembler()
 {
 	disassemblyIndex++;
+	// Have we branched or jumped instructions?
+	if (disassembleInfo.instructions[disassemblyIndex].address != pc)
+	{
+		// Do we already have our current instruction disassembled?
+		int i;
+		for (i = 0; i < disassembleInfo.count; i++)
+		{
+			if (disassembleInfo.instructions[i].address == pc)
+				break;
+		}
+		if (i >= disassembleInfo.count)	// Didn't find our address in disassembled instructions
+		{
+			Disassemble(pc, maxDisassemblySize, &disassembleInfo);
+			disassemblyIndex = 0;
+			return;
+		}
+		disassemblyIndex = i;
+	}
+
 	while (disassemblyIndex > disassembleInfo.count / 2 && disassembleInfo.count == maxDisassemblySize && disassembleInfo.instructions)
 	{
 		Disassemble(disassembleInfo.instructions[1].address, maxDisassemblySize, &disassembleInfo);
@@ -278,7 +297,7 @@ bool CPU_6502::REL()		// Relative
 {
 	uint8_t offset = bus->Read(pc++);
 	stringstream ss;
-	ss << uppercase << setfill('0') << setw(2) << hex << offset;
+	ss << uppercase << setfill('0') << setw(2) << hex << (uint16_t)offset;
 	operandString = "$" + ss.str();
 	if (offset & 0x80)
 	{
@@ -774,7 +793,7 @@ bool CPU_6502::BCS(bool disassemble)
 }
 bool CPU_6502::BNE(bool disassemble)
 {
-	opCodeString = "BNE";
+  	opCodeString = "BNE";
 	if (!disassemble)
 	{
 		if (!status.Z)

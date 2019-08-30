@@ -125,6 +125,7 @@
   <ItemGroup>
     <ClCompile Include="CPU_6502.cpp" />
     <ClCompile Include="Memory.cpp" />
+    <ClCompile Include="NESLoader.cpp" />
     <ClCompile Include="NESSimulator.cpp" />
     <ClCompile Include="NES.cpp" />
   </ItemGroup>
@@ -132,6 +133,7 @@
     <ClInclude Include="CPU_6502.h" />
     <ClInclude Include="Memory.h" />
     <ClInclude Include="NES.h" />
+    <ClInclude Include="NESLoader.h" />
     <ClInclude Include="olcPixelGameEngine.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

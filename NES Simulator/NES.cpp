@@ -2,6 +2,8 @@
 #include "NES.h"
 #include "Memory.h"
 #include "CPU_6502.h"
+#include "Memory.h"
+#include "NESLoader.h"
 #include <iostream>
 #include <sstream>
 #include <iomanip>
@@ -16,6 +18,8 @@ NES::NES()
 	bus = new Memory();
 	if (bus)
 	{
+		loader = new NESLoader(bus);
+		loader->LoadFile("F:\\nestest.nes");
 		cpu = new CPU_6502(bus);
 	}
 }
@@ -30,14 +34,15 @@ bool NES::OnUserUpdate(float fElapsedTime)
 {
 	// called once per frame, draws random coloured pixels
 	olc::HWButton spaceStatus = GetKey(olc::Key::SPACE);
-	if (spaceStatus.bPressed)
+	if (spaceStatus.bPressed && cpu)
 	{
 		cpu->Step();
 	}
+	//cpu->Clock();
 
 	Clear(olc::BLACK);
 	DumpMemory(5, 5, 0x0000, 16, 16);
-	DumpMemory(5, 185, 0xF00, 16, 16);
+	DumpMemory(5, 185, 0xC000, 16, 16);
 	DisplayRegisters(442, 50);
 	if (cpu)
 	{

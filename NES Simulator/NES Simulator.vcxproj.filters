@@ -27,6 +27,9 @@
     <ClCompile Include="CPU_6502.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="NESLoader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="NES.h">
@@ -39,6 +42,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="olcPixelGameEngine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="NESLoader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
