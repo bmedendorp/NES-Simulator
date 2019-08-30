@@ -1,5 +1,6 @@
 #pragma once
 #include "olcPixelGameEngine.h"
+#include "Bus.h"
 #include "Memory.h"
 #include "CPU_6502.h"
 #include "NESLoader.h"
@@ -10,8 +11,9 @@ public:
 	NES();
 
 private:
-	Memory *bus;
-	CPU_6502 *cpu;
+	CPU_6502* cpu;	
+	Bus* bus;
+	Memory* memory;
 	NESLoader* loader;
 
 public:

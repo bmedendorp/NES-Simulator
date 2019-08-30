@@ -123,6 +123,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Bus.cpp" />
+    <ClCompile Include="BusDevice.cpp" />
     <ClCompile Include="CPU_6502.cpp" />
     <ClCompile Include="Memory.cpp" />
     <ClCompile Include="NESLoader.cpp" />
@@ -130,6 +132,8 @@
     <ClCompile Include="NES.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Bus.h" />
+    <ClInclude Include="BusDevice.h" />
     <ClInclude Include="CPU_6502.h" />
     <ClInclude Include="Memory.h" />
     <ClInclude Include="NES.h" />

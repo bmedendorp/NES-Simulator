@@ -1,4 +1,5 @@
 #include "CPU_6502.h"
+#include "Bus.h"
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -6,7 +7,7 @@
 
 using namespace std;
 
-CPU_6502::CPU_6502(Memory* bus, uint8_t disassembleLines)
+CPU_6502::CPU_6502(Bus* bus, uint8_t disassembleLines)
 {
 	this->bus = bus;
 

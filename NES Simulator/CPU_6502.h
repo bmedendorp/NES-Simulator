@@ -1,14 +1,14 @@
 #pragma once
 #include <cstdint>
 #include <string>
-#include "Memory.h"
+#include "Bus.h"
 
 using namespace std;
 
 class CPU_6502
 {
 public:
-	CPU_6502(Memory *bus, uint8_t disassembleLines = 13);
+	CPU_6502(Bus *bus, uint8_t disassembleLines = 13);
 	~CPU_6502();
 
 	void Reset();
@@ -98,7 +98,7 @@ private:
 	// Class Globals
 	uint16_t address;
 	uint8_t data;
-	Memory* bus;
+	Bus* bus;
 	std::string opCodeString;
 	std::string operandString;
 	InterruptType currentInterrupt;

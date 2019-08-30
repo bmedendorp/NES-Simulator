@@ -1,5 +1,6 @@
 #define OLC_PGE_APPLICATION
 #include "NES.h"
+#include "Bus.h"
 #include "Memory.h"
 #include "CPU_6502.h"
 #include "Memory.h"
@@ -15,10 +16,15 @@ NES::NES()
 	sAppName = "NES Simulator";
 	// Construct our 'physical' screen
 	Construct(600, 350, 2, 2);
-	bus = new Memory();
+	bus = new Bus();
+	memory = new Memory();
 	if (bus)
 	{
-		loader = new NESLoader(bus);
+		if (memory)
+		{
+			bus->RegisterDevice(memory, 0x4000, 12);	
+		}
+		loader = new NESLoader(memory);
 		loader->LoadFile("F:\\nestest.nes");
 		cpu = new CPU_6502(bus);
 	}
@@ -33,12 +39,12 @@ bool NES::OnUserCreate()
 bool NES::OnUserUpdate(float fElapsedTime)
 {
 	// called once per frame, draws random coloured pixels
-	olc::HWButton spaceStatus = GetKey(olc::Key::SPACE);
-	if (spaceStatus.bPressed && cpu)
-	{
-		cpu->Step();
-	}
-	//cpu->Clock();
+	//olc::HWButton spaceStatus = GetKey(olc::Key::SPACE);
+	//if (spaceStatus.bPressed && cpu)
+	//{
+	//	cpu->Step();
+	//}
+	cpu->Clock();
 
 	Clear(olc::BLACK);
 	DumpMemory(5, 5, 0x0000, 16, 16);
