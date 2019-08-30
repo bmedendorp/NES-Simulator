@@ -22,7 +22,7 @@ NES::NES()
 	{
 		if (memory)
 		{
-			bus->RegisterDevice(memory, 0x4000, 12);	
+			bus->RegisterDevice(memory, 0x8000, 8);	
 		}
 		loader = new NESLoader(memory);
 		loader->LoadFile("F:\\nestest.nes");

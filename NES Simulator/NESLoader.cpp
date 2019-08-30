@@ -14,6 +14,7 @@ NESLoader::NESLoader(Memory* bus)
 bool NESLoader::LoadFile(string fileName)
 {
 	char header[16];
+	bool result = true;
 
 	// Open File for reading
 	ifstream inFile;
@@ -25,33 +26,37 @@ bool NESLoader::LoadFile(string fileName)
 	inFile.seekg(0, ios::beg);
 	inFile.read(header, 16);
 
-	// Determine the size of the program data (header byte 4 * 16k)
-	uint16_t prgDataSize = 1024 * 16 * header[4];
+	// Determine the size of the program ROM (16 or 32K)
+	bool b32k = header[4] == 2 ? true : false;
+
+	// Determine if 'trainer' is present in file
+	if (header[6] & 0x08)
+		inFile.seekg(512, ios::cur);
 
 	// Read the program data into memory
 	char* memoryBuffer = NULL;
-	uint16_t size = bus->GetBuffer(0x8000, (uint8_t**)&memoryBuffer);	// Get pointer to memory location 0x8000 (start of program memory)
-	if (size >= 1024 * 32)	// 32k
+	memoryBuffer = (char*)bus->GetROMBuffer();	// Get pointer to memory location 0x8000 (start of program memory)
+	if (memoryBuffer)
 	{
-		// Determine if 'trainer' is present in file
-		if (header[6] & 0x08)
-			inFile.seekg(512, ios::cur);
-
-		streampos prgStart = inFile.tellg();
-
-		// Read the program data
-		inFile.read(memoryBuffer, prgDataSize);
-
-		// If only 16k of data, mirror it into the next 16k of memory
-		if (header[4] == 1)
-		{
-			inFile.seekg(prgStart);
-			inFile.read(memoryBuffer + 1024 * 16, prgDataSize);
-		}
-		inFile.close();
-		return true;
+		// Read the first 16k of program ROM
+		inFile.read(memoryBuffer, 0x4000);
 	}
+	else
+		result = false;
+
+	if (b32k)
+	{
+		memoryBuffer = (char*)bus->GetROMBuffer(true);	// Get the pointer to memory location 0xC000 (2nd 16k of program memory)
+		if (memoryBuffer)
+		{
+			// Read the 2nd 16k of program ROM
+			inFile.read(memoryBuffer, 0x4000);
+		}
+		else
+			result = false;
+	}
+
 	inFile.close();
-	return false;
+	return result;
 }
 

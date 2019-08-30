@@ -44,6 +44,7 @@ bool Bus::RegisterDevice(BusDevice* device, uint16_t startAddress, uint8_t addre
 	{
 		devices[index + i] = device;
 	}
+	return true;
 }
 
 BusDevice* Bus::GetRegisteredDevice(uint16_t address) const

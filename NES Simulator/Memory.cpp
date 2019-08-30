@@ -2,45 +2,55 @@
 
 Memory::Memory() 
 {
-	ram = new uint8_t[MEMORY_SIZE_BYTES];
-	if (ram)
+	rom[0] = new uint8_t[SIZE_16K];	// Lower 16k of ROM memory
+	rom[1] = rom[0];				// Default mirror of lower 16k
+	if (rom[0])
 	{
-		Initialize();
+		Initialize(rom[0]);
 	}
 }
 
 Memory::~Memory()
 {
-	delete[] ram;
+	if (rom[1] != rom[0])
+		delete[] rom[1];
+	delete[] rom[0];
 }
 
 uint8_t Memory::Read(uint16_t address) const
 {
-	return ram[address];
+	return *GetBytePtr(address);
 }
 
 void Memory::Write(uint16_t address, uint8_t data)
 {
-	ram[address] = data;
+	*GetBytePtr(address) = data;
 }
 
-uint16_t Memory::GetBuffer(uint16_t address, uint8_t** bufPtr)
+uint8_t* Memory::GetBytePtr(uint16_t address) const
 {
-	if (ram)
-	{
-		*bufPtr = ram + address;
-		return MEMORY_SIZE_BYTES - address + 1;
-	}
-	else
-	{
-		*bufPtr = NULL;
-		return 0;
-	}
+	int index = address & 0x4000 ? 1 : 0;
+	return &rom[index][address & 0x3FFF];
 }
 
-void Memory::Initialize()
+uint8_t* Memory::GetROMBuffer(bool highBank)
 {
-	// Program
-	ram[0x0001] = 0x00;
-	ram[0x0002] = 0x00;
+	if (highBank)
+	{
+		if (rom[1] == rom[0] || rom[1] == NULL)
+		{
+			// Allocate the upper 16k of memory
+			rom[1] = new uint8_t[SIZE_16K];
+		}
+		return rom[1];
+	}
+	return rom[0];
+}
+
+void Memory::Initialize(uint8_t * mem)
+{
+	for (int i = 0; i < 1024 * 4; i++)
+	{
+
+	}
 }
