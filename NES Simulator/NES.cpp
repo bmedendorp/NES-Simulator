@@ -22,7 +22,8 @@ NES::NES()
 	{
 		if (memory)
 		{
-			bus->RegisterDevice(memory, 0x8000, 8);	
+			bus->RegisterDevice(memory, 0x8000, 8);		// Program ROM
+			bus->RegisterDevice(memory, 0x0000, 2);		// Internal RAM
 		}
 		loader = new NESLoader(memory);
 		loader->LoadFile("F:\\nestest.nes");
