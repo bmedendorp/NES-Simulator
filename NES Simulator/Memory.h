@@ -9,9 +9,6 @@ public:
 	~Memory();
 
 private:
-	const static uint16_t SIZE_2K = 0x0800;
-	const static uint16_t SIZE_16K = 0x4000;
-
 	uint8_t* ram[4];
 	uint8_t* rom[2];
 

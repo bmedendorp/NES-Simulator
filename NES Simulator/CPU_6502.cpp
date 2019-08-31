@@ -4,11 +4,14 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <stdexcept>
 
 using namespace std;
 
 CPU_6502::CPU_6502(Bus* bus, uint8_t disassembleLines)
 {
+	if (!bus)
+		throw std::invalid_argument("bus ptr = NULL");
 	this->bus = bus;
 
 	maxDisassemblySize = disassembleLines;
@@ -24,9 +27,6 @@ CPU_6502::~CPU_6502()
 
 void CPU_6502::Reset()
 {
-	if (!bus)
-		throw ExceptionType::EXCEPTION_NULL_BUS_PTR;
-
 	pc = bus->Read(0xFFFC) | (uint16_t)(bus->Read(0xFFFD) << 8);
 	sp = 0xFF;
 	regA = regX = regY = 0x00;
@@ -45,9 +45,6 @@ bool CPU_6502::Clock()
 
 	if (currentCycle == 0)
 	{
-		if (!bus)
-			throw ExceptionType::EXCEPTION_NULL_BUS_PTR;
-
 		if (currentInterrupt == INTERRUPT_NONE)
 		{
 			AdvanceDisassembler();
@@ -76,7 +73,7 @@ bool CPU_6502::Clock()
 				address = 0xFFFA;
 				break;
 			default:
-				throw ExceptionType::EXCEPTION_INVALID_INTERRUPT;
+				throw std::logic_error("Bad interrupt type");
 			}
 			// Handle the interrupt
 			(this->*opCode.instruction)(false);
@@ -143,9 +140,6 @@ uint8_t CPU_6502::GetStackPointer() const
 
 uint8_t CPU_6502::Disassemble(uint16_t programStart, uint8_t instructionCount, CPU_6502::DisassembleInfo* data, uint16_t maxBytes)
 {
-	if (!bus)
-		throw ExceptionType::EXCEPTION_NULL_BUS_PTR;
-
 	// Save program counter
 	uint16_t originalPC = pc;
 

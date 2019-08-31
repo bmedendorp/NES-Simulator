@@ -1,10 +1,5 @@
 #define OLC_PGE_APPLICATION
 #include "NES.h"
-#include "Bus.h"
-#include "Memory.h"
-#include "CPU_6502.h"
-#include "Memory.h"
-#include "NESLoader.h"
 #include <iostream>
 #include <sstream>
 #include <iomanip>
@@ -18,8 +13,13 @@ NES::NES()
 	Construct(600, 350, 2, 2);
 	bus = new Bus();
 	memory = new Memory();
+	ppu = new PPU();
 	if (bus)
 	{
+		if (ppu)
+		{
+			bus->RegisterDevice(ppu, 0x2000, 2);		// PPU Registers
+		}
 		if (memory)
 		{
 			bus->RegisterDevice(memory, 0x8000, 8);		// Program ROM
@@ -49,7 +49,7 @@ bool NES::OnUserUpdate(float fElapsedTime)
 
 	Clear(olc::BLACK);
 	DumpMemory(5, 5, 0x0000, 16, 16);
-	DumpMemory(5, 185, 0xC000, 16, 16);
+	DumpMemory(5, 185, 0x2000, 16, 16);
 	DisplayRegisters(442, 50);
 	if (cpu)
 	{

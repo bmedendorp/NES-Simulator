@@ -23,8 +23,6 @@ public:
 	uint16_t GetProgramCounter() const;
 	uint8_t GetStackPointer() const;
 
-	enum ExceptionType {EXCEPTION_INVALID_INTERRUPT, EXCEPTION_NULL_BUS_PTR};
-
 	struct DisassembledInstruction
 	{
 		uint16_t address;

@@ -17,6 +17,7 @@ Memory::Memory()
 
 Memory::~Memory()
 {
+	delete[] ram[0];
 	if (rom[1] != rom[0])
 		delete[] rom[1];
 	delete[] rom[0];

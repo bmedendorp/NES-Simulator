@@ -130,6 +130,7 @@
     <ClCompile Include="NESLoader.cpp" />
     <ClCompile Include="NESSimulator.cpp" />
     <ClCompile Include="NES.cpp" />
+    <ClCompile Include="PPU.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bus.h" />
@@ -139,6 +140,7 @@
     <ClInclude Include="NES.h" />
     <ClInclude Include="NESLoader.h" />
     <ClInclude Include="olcPixelGameEngine.h" />
+    <ClInclude Include="PPU.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

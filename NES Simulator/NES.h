@@ -3,6 +3,7 @@
 #include "Bus.h"
 #include "Memory.h"
 #include "CPU_6502.h"
+#include "PPU.h"
 #include "NESLoader.h"
 
 class NES : public olc::PixelGameEngine
@@ -13,6 +14,7 @@ public:
 private:
 	CPU_6502* cpu;	
 	Bus* bus;
+	PPU* ppu;
 	Memory* memory;
 	NESLoader* loader;
 
