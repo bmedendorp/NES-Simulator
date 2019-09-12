@@ -2,8 +2,12 @@
 #include <cstdint>
 #include <stdexcept>
 
-PPU::PPU()
+PPU::PPU() : screen{ {256, 240}, {256, 240} }
 {
+	scanline = -1;
+	cycle = 0;
+	backBuffer = 0;
+
 	registers[PPUCTRL] = 0x00;
 	registers[PPUMASK] = 0x00;
 	registers[PPUSTATUS] = 0xA0;
@@ -31,6 +35,9 @@ PPU::~PPU()
 
 void PPU::Reset()
 {
+	scanline = -1;
+	cycle = 0;
+
 	registers[PPUCTRL] = 0x00;
 	registers[PPUMASK] = 0x00;
 	registers[PPUSTATUS] &= 0x80;
@@ -48,6 +55,34 @@ uint8_t PPU::Read(uint16_t address) const
 void PPU::Write(uint16_t address, uint8_t data)
 {
 	registers[address & 0x0007] = data;		// The same 8 register bytes are mirrored across the entire 8k of address space
+}
+
+uint8_t* PPU::GetChrROMBuffer()
+{
+	return chrROM;
+}
+
+const olc::Sprite* PPU::getScreen() const
+{
+	return &screen[(backBuffer + 1) % 2];
+}
+
+bool PPU::Clock()
+{
+	bool result = false;
+
+	if (++cycle > 261)
+	{
+		if (++scanline > 340)
+		{
+			scanline = -1;
+			backBuffer = (backBuffer + 1) % 2;
+			result = true;
+		}
+		cycle = 0;
+	}
+	screen[backBuffer].SetPixel(cycle, scanline, rand() % 2 ? olc::BLACK : olc::WHITE);
+	return result;
 }
 
 void PPU::MapNametables(NametableMapType type)

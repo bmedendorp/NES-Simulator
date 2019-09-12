@@ -1,5 +1,6 @@
 #pragma once
 #include "BusDevice.h"
+#include "olcPixelGameEngine.h"
 #include <cstdint>
 
 #define PPUCTRL		0
@@ -22,8 +23,17 @@ public:
 	void Reset();
 	uint8_t Read(uint16_t address) const override;
 	void Write(uint16_t address, uint8_t data) override;
+	uint8_t* GetChrROMBuffer();
+	const olc::Sprite* getScreen() const;
+	bool Clock();
 
 private:
+	olc::Sprite screen[2];
+	int backBuffer;
+
+	int16_t scanline;
+	int16_t cycle;
+
 	uint8_t registers[8];
 	uint8_t colorData[28];
 	uint8_t OAM[256];

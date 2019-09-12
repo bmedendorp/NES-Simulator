@@ -10,7 +10,7 @@ NES::NES()
 {
 	sAppName = "NES Simulator";
 	// Construct our 'physical' screen
-	Construct(600, 350, 2, 2);
+	Construct(800, 480, 2, 2);
 	bus = new Bus();
 	memory = new Memory();
 	ppu = new PPU();
@@ -25,7 +25,7 @@ NES::NES()
 			bus->RegisterDevice(memory, 0x8000, 8);		// Program ROM
 			bus->RegisterDevice(memory, 0x0000, 2);		// Internal RAM
 		}
-		loader = new NESLoader(memory);
+		loader = new NESLoader(memory, ppu);
 		loader->LoadFile("F:\\nestest.nes");
 		cpu = new CPU_6502(bus);
 	}
@@ -39,23 +39,24 @@ bool NES::OnUserCreate()
 
 bool NES::OnUserUpdate(float fElapsedTime)
 {
-	// called once per frame, draws random coloured pixels
+#ifdef DEBUG
 	//olc::HWButton spaceStatus = GetKey(olc::Key::SPACE);
-	//if (spaceStatus.bPressed && cpu)
+	//if (spaceStatus.bPressed && cpu && ppu)
 	//{
-	//	cpu->Step();
+	//	do
+	//	{
+	//		ppu->Clock();		// 3 ppu cycles for every cpu cycle
+	//		ppu->Clock();
+	//		ppu->Clock();
+	//	} while (!cpu->Clock());
 	//}
-	cpu->Clock();
+#else
+	Clock();
+#endif
 
-	Clear(olc::BLACK);
-	DumpMemory(5, 5, 0x0000, 16, 16);
-	DumpMemory(5, 185, 0x2000, 16, 16);
-	DisplayRegisters(442, 50);
-	if (cpu)
-	{
-		const CPU_6502::DisassembleInfo* disassembleInfo = cpu->GetDisassembleInfo();
-		DisplayCode(442, 200, disassembleInfo, disassembleInfo->count, cpu->GetProgramCounter());
-	}
+	Clear(olc::BLUE);
+	DrawSprite(0, 0, ppu->getScreen(), 2);
+	DisplayRegisters(520, 50);
 	return true;
 }
 
@@ -159,4 +160,17 @@ void NES::DisplayCode(int32_t x, int32_t y, const CPU_6502::DisassembleInfo* dat
 	{
 		DrawString(x, y + 10 * i, data->instructions[i].instructionString, data->instructions[i].address == pc ? olc::RED : olc::GREY);
 	}
+}
+
+void NES::Clock()
+{
+	bool vSync = false;
+
+	do
+	{
+		vSync = ppu->Clock();
+		vSync |= ppu->Clock();
+		vSync |= ppu->Clock();
+		cpu->Clock();
+	} while (!vSync);
 }
