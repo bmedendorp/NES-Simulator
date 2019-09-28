@@ -24,10 +24,10 @@ PPU::PPU() : screen{ {256, 240}, {256, 240} }, patternTable{ {128, 128}, {128, 1
 	patternTable1 = chrROM + SIZE_4K;
 	MapNametables(nametableType);
 
-	*paletteRAM[0][0] = 0x0d;
-	*paletteRAM[0][1] = 0x02;
-	*paletteRAM[0][2] = 0x06;
-	*paletteRAM[0][3] = 0x0a;
+	*paletteRAM[0] = 0x0d;
+	*paletteRAM[1] = 0x02;
+	*paletteRAM[2] = 0x06;
+	*paletteRAM[3] = 0x0a;
 }
 
 PPU::~PPU()
@@ -92,7 +92,7 @@ bool PPU::Clock()
 
 const olc::Sprite* PPU::GetPatternTable(uint8_t paletteIndex, bool left)
 {
-	uint8_t** palette = paletteRAM[paletteIndex];
+	uint8_t* palette = paletteRAM[paletteIndex * 4];
 	olc::Pixel *display = patternTable[left].GetData();
 	uint8_t* patternTable = left ? patternTable0 : patternTable1;
 
@@ -110,7 +110,7 @@ const olc::Sprite* PPU::GetPatternTable(uint8_t paletteIndex, bool left)
 					uint8_t index = ((lsb & 0x80) >> 7) + ((msb & 0x80) >> 6);
 					lsb <<= 1;
 					msb <<= 1;
-					display[(i + k) * 128 + (j + l)] = colors[*paletteRAM[paletteIndex][index]];
+					display[(i + k) * 128 + (j + l)] = colors[*paletteRAM[paletteIndex * 4 + index]];
 				}
 			}
 			tableIndex += 8;
@@ -178,7 +178,7 @@ uint8_t* PPU::GetAddressPtr(uint16_t address) const
 		switch ((address & 0x0100) >> 8)
 		{
 		case 1:
-			return paletteRAM[0][0];	// Fix this!
+			return paletteRAM[offset];
 
 		//case 0:
 			// Falls through to mirror nametable addresses

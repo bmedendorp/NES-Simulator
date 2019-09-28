@@ -26,7 +26,7 @@ NES::NES()
 			bus->RegisterDevice(memory, 0x0000, 2);		// Internal RAM
 		}
 		loader = new NESLoader(memory, ppu);
-		loader->LoadFile("F:\\nestest.nes");
+		loader->LoadFile("F:\\Donkey Kong.nes");
 		cpu = new CPU_6502(bus);
 	}
 }
