@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <stdexcept>
 
-PPU::PPU() : screen{ {256, 240}, {256, 240} }
+PPU::PPU() : screen{ {256, 240}, {256, 240} }, patternTable{ {128, 128}, {128, 128} }
 {
 	scanline = -1;
 	cycle = 0;
@@ -23,6 +23,11 @@ PPU::PPU() : screen{ {256, 240}, {256, 240} }
 	patternTable0 = chrROM;
 	patternTable1 = chrROM + SIZE_4K;
 	MapNametables(nametableType);
+
+	*paletteRAM[0][0] = 0x0d;
+	*paletteRAM[0][1] = 0x02;
+	*paletteRAM[0][2] = 0x06;
+	*paletteRAM[0][3] = 0x0a;
 }
 
 PPU::~PPU()
@@ -62,7 +67,7 @@ uint8_t* PPU::GetChrROMBuffer()
 	return chrROM;
 }
 
-const olc::Sprite* PPU::getScreen() const
+const olc::Sprite* PPU::GetScreen() const
 {
 	return &screen[(backBuffer + 1) % 2];
 }
@@ -83,6 +88,36 @@ bool PPU::Clock()
 	}
 	screen[backBuffer].SetPixel(cycle, scanline, rand() % 2 ? olc::BLACK : olc::WHITE);
 	return result;
+}
+
+const olc::Sprite* PPU::GetPatternTable(uint8_t paletteIndex, bool left)
+{
+	uint8_t** palette = paletteRAM[paletteIndex];
+	olc::Pixel *display = patternTable[left].GetData();
+	uint8_t* patternTable = left ? patternTable0 : patternTable1;
+
+	int tableIndex = 0;
+	for (int i = 0; i < 128; i += 8)	// Row Iteration (8 rows per iteration)
+	{
+		for (int j = 0; j < 128; j += 8)	// Column Iteration (8 columns per iteration)
+		{
+			for (int k = 0; k < 8; k++, tableIndex++)
+			{
+				uint8_t lsb = patternTable[tableIndex];
+				uint8_t msb = patternTable[tableIndex + 8];
+				for (int l = 0; l < 8; l++)
+				{
+					uint8_t index = ((lsb & 0x80) >> 7) + ((msb & 0x80) >> 6);
+					lsb <<= 1;
+					msb <<= 1;
+					display[(i + k) * 128 + (j + l)] = colors[*paletteRAM[paletteIndex][index]];
+				}
+			}
+			tableIndex += 8;
+		}
+	}
+
+	return &this->patternTable[left];
 }
 
 void PPU::MapNametables(NametableMapType type)
@@ -143,7 +178,7 @@ uint8_t* PPU::GetAddressPtr(uint16_t address) const
 		switch ((address & 0x0100) >> 8)
 		{
 		case 1:
-			return paletteRAM[offset];
+			return paletteRAM[0][0];	// Fix this!
 
 		//case 0:
 			// Falls through to mirror nametable addresses

@@ -33,7 +33,11 @@ NES::NES()
 
 bool NES::OnUserCreate()
 {
-	// Called once at the start, so create things here
+	const vector<CPU_6502::DisassembledInstruction>* instructionList = cpu->Disassemble(0x8000, 0x0FFF);
+	//for (int i = 0; i != instructionList->size(); i++)
+	//{
+	//	std::cout << instructionList->at(i).instructionString << std::endl;
+	//}
 	return true;
 }
 
@@ -55,8 +59,10 @@ bool NES::OnUserUpdate(float fElapsedTime)
 #endif
 
 	Clear(olc::BLUE);
-	DrawSprite(0, 0, ppu->getScreen(), 2);
+	DrawSprite(0, 0, ppu->GetScreen(), 2);
 	DisplayRegisters(520, 50);
+	DrawSprite(523, 345, ppu->GetPatternTable(0, true), 1);
+	DrawSprite(660, 345, ppu->GetPatternTable(0, false), 1);
 	return true;
 }
 
@@ -154,13 +160,13 @@ void NES::DisplayRegisters(int32_t x, int32_t y)
 	}
 }
 
-void NES::DisplayCode(int32_t x, int32_t y, const CPU_6502::DisassembleInfo* data, uint8_t lines, uint16_t pc)
-{
-	for (int i = 0; i < lines; i++)
-	{
-		DrawString(x, y + 10 * i, data->instructions[i].instructionString, data->instructions[i].address == pc ? olc::RED : olc::GREY);
-	}
-}
+//void NES::DisplayCode(int32_t x, int32_t y, const CPU_6502::DisassembleInfo* data, uint8_t lines, uint16_t pc)
+//{
+//	for (int i = 0; i < lines; i++)
+//	{
+//		DrawString(x, y + 10 * i, data->instructions[i].instructionString, data->instructions[i].address == pc ? olc::RED : olc::GREY);
+//	}
+//}
 
 void NES::Clock()
 {

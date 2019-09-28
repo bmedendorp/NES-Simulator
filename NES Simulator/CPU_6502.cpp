@@ -51,8 +51,7 @@ bool CPU_6502::Clock()
 		}
 		else
 		{
-			OpCode opCode = { &CPU_6502::INT, &CPU_6502::IMP, 7 };	// Interrupt handling 'instruction'
-			operandString = "";
+			OpCode opCode = { &CPU_6502::INT, &CPU_6502::IMP, 7, "INT", &CPU_6502::IMP_dis };	// Interrupt handling 'instruction'
 			// Set address for proper interrupt handling routine
 			switch (currentInterrupt)
 			{
@@ -129,6 +128,28 @@ uint8_t CPU_6502::GetStackPointer() const
 	return sp;
 }
 
+const std::vector<CPU_6502::DisassembledInstruction>* CPU_6502::Disassemble(uint16_t startAddress, uint16_t size)
+{
+	disassembleInfo.clear();
+	instructionMap.clear();
+	CPU_6502::OpCode instruction;
+	CPU_6502::DisassembledInstruction instructionInfo;
+	int index = 0;
+
+	uint16_t counter = startAddress;
+	while (counter < startAddress + size)
+	{
+		instructionMap.emplace(counter, index);
+		instructionInfo.address = counter;
+		instruction = opCodes[bus->Read(counter++)];
+		instructionInfo.instructionString = std::string(instruction.opCode) + " " + (this->*instruction.mode_dis)(counter);
+		instructionInfo.instructionSize = counter - instructionInfo.address;
+		disassembleInfo.push_back(instructionInfo);
+	}
+
+	return &disassembleInfo;
+}
+
 // ****************
 // Addressing Modes
 // ****************
@@ -136,10 +157,14 @@ bool CPU_6502::ZPX()		// Zero Page Indexed (X)
 {
 	uint8_t base = bus->Read(pc++);
 	address = (base + regX) && 0x00FF;
-	//stringstream ss;
-	//ss << uppercase << setfill('0') << setw(2) << hex << base;
-	//operandString = "$" + ss.str() + ",X";
 	return false;
+}
+string CPU_6502::ZPX_dis(uint16_t& counter)
+{
+	uint8_t base = bus->Read(counter++);
+	stringstream ss;
+	ss << uppercase << setfill('0') << setw(2) << hex << base;
+	return string("$" + ss.str() + ",X");
 }
 bool CPU_6502::ZPY()		// Zero Page Indexed (Y)
 {
@@ -150,86 +175,120 @@ bool CPU_6502::ZPY()		// Zero Page Indexed (Y)
 	//operandString = "$" + ss.str() + ",Y";
 	return false;
 }
+string CPU_6502::ZPY_dis(uint16_t& counter)
+{
+	uint8_t base = bus->Read(counter++);
+	stringstream ss;
+	ss << uppercase << setfill('0') << setw(2) << hex << base;
+	return string("$" + ss.str() + ",Y");
+}
 bool CPU_6502::ABX()		// Absolute Indexed (X)
 {
 	uint8_t lsb = bus->Read(pc++);
 	uint16_t msb = (uint16_t)bus->Read(pc++);
 	address = (lsb + regX) | (msb << 8);
-	//stringstream ss;
-	//ss << uppercase << setfill('0') << setw(4) << hex << (lsb | (msb << 8));
-	//operandString = "$" + ss.str() + ",X";
 	if ((address & 0x00FF) < regX)
 		return true;
 	return false;
+}
+string CPU_6502::ABX_dis(uint16_t& counter)
+{
+	uint8_t lsb = bus->Read(counter++);
+	uint16_t msb = (uint16_t)bus->Read(counter++);
+	stringstream ss;
+	ss << uppercase << setfill('0') << setw(4) << hex << (lsb | (msb << 8));
+	return string("$" + ss.str() + ",X");
 }
 bool CPU_6502::ABY()		// Absolute Indexed (Y)
 {
 	uint8_t lsb = bus->Read(pc++);
 	uint16_t msb = (uint16_t)bus->Read(pc++);
 	address = (lsb + regY) | (msb << 8);
-	//stringstream ss;
-	//ss << uppercase << setfill('0') << setw(4) << hex << (lsb | (msb << 8));
-	//operandString = "$" + ss.str() + ",Y";
 	if ((address & 0x00FF) < regY)
 		return true;
 	return false;
+}
+string CPU_6502::ABY_dis(uint16_t& counter)
+{
+	uint8_t lsb = bus->Read(counter++);
+	uint16_t msb = (uint16_t)bus->Read(counter++);
+	stringstream ss;
+	ss << uppercase << setfill('0') << setw(4) << hex << (lsb | (msb << 8));
+	return string("$" + ss.str() + ",Y");
 }
 bool CPU_6502::IZX()		// Indexed Indirect
 {
 	uint8_t pointer = bus->Read(pc++);
 	address = (bus->Read(pointer++ + regX) & 0x00FF) | (uint16_t)(bus->Read(pointer-- + regX) & 0x00FFF) << 8;
-	//stringstream ss;
-	//ss << uppercase << setfill('0') << setw(2) << hex << (int)pointer;
-	//operandString = "($" + ss.str() + ",X)";
 	return false;
+}
+string CPU_6502::IZX_dis(uint16_t& counter)
+{
+	uint8_t pointer = bus->Read(counter++);
+	stringstream ss;
+	ss << uppercase << setfill('0') << setw(2) << hex << (int)pointer;
+	return string("($" + ss.str() + ",X)");
 }
 bool CPU_6502::IZY()		// Indirect Indexed
 {
 	uint8_t pointer = bus->Read(pc++);
 	address = (bus->Read(pointer++) | (uint16_t)(bus->Read(pointer--) & 0x00FF) << 8) + regY;
-	//stringstream ss;
-	//ss << uppercase << setfill('0') << setw(2) << hex << (int)pointer;
-	//operandString = "($" + ss.str() + "),Y";
 	if ((address & 0x00FF) < regY)
 		return true;
 	return false;
 }
+string CPU_6502::IZY_dis(uint16_t& counter)
+{
+	uint8_t pointer = bus->Read(counter++);
+	stringstream ss;
+	ss << uppercase << setfill('0') << setw(2) << hex << (int)pointer;
+	return string("($" + ss.str() + "),Y");
+}
 bool CPU_6502::IMP()		// Implicit
 {
-	//operandString = "";
 	bImplied = true;
 	return false;
+}
+string CPU_6502::IMP_dis(uint16_t& counter)
+{
+	return string("");
 }
 bool CPU_6502::IMM()		// Immediate
 {
 	address = pc++;
-	//stringstream ss;
-	//ss << uppercase << setfill('0') << setw(2) << hex << (int)bus->Read(address);
-	//operandString = "#" + ss.str();
 	return false;
+}
+string CPU_6502::IMM_dis(uint16_t& counter)
+{
+	stringstream ss;
+	ss << uppercase << setfill('0') << setw(2) << hex << (int)bus->Read(counter++);
+	return string("#$" + ss.str());
 }
 bool CPU_6502::ZP()			// Zero Page
 {
 	address = bus->Read(pc++);
-	//stringstream ss;
-	//ss << uppercase << setfill('0') << setw(2) << hex << address;
-	//operandString = "$" + ss.str();
 	return false;
+}
+string CPU_6502::ZP_dis(uint16_t& counter)
+{
+	stringstream ss;
+	ss << uppercase << setfill('0') << setw(2) << hex << bus->Read(counter++);
+	return string("$" + ss.str());
 }
 bool CPU_6502::ABS()		// Absolute
 {
 	address = bus->Read(pc++) | (uint16_t)(bus->Read(pc++) << 8);
-	//stringstream ss;
-	//ss << uppercase << setfill('0') << setw(4) << hex << address;
-	//operandString = "$" + ss.str();
 	return false;
+}
+string CPU_6502::ABS_dis(uint16_t& counter)
+{
+	stringstream ss;
+	ss << uppercase << setfill('0') << setw(4) << hex << (bus->Read(counter++) | (uint16_t)(bus->Read(counter++) << 8));
+	return string("$" + ss.str());
 }
 bool CPU_6502::REL()		// Relative
 {
 	uint8_t offset = bus->Read(pc++);
-	//stringstream ss;
-	//ss << uppercase << setfill('0') << setw(2) << hex << (uint16_t)offset;
-	//operandString = "$" + ss.str();
 	if (offset & 0x80)
 	{
 		// Offset is negative, subtract 2's compliment from pc
@@ -247,14 +306,26 @@ bool CPU_6502::REL()		// Relative
 	}
 	return false;
 }
+string CPU_6502::REL_dis(uint16_t& counter)
+{
+	uint8_t offset = bus->Read(counter++);
+	stringstream ss;
+	ss << uppercase << setfill('0') << setw(2) << hex << (uint16_t)offset;
+	return string("$" + ss.str());
+}
 bool CPU_6502::IND()		// Indirect
 {
 	uint16_t pointer = bus->Read(pc++) | (uint16_t)(bus->Read(pc++) << 8);
 	address = bus->Read(pointer++) | (uint16_t)(bus->Read(pointer) << 8);
-	//stringstream ss;
-	//ss << uppercase << setfill('0') << setw(4) << hex << pointer;
-	//operandString = "($" + ss.str() + ")";
 	return false;
+}
+
+string CPU_6502::IND_dis(uint16_t& counter)
+{
+	uint16_t pointer = bus->Read(counter++) | (uint16_t)(bus->Read(counter++) << 8);
+	stringstream ss;
+	ss << uppercase << setfill('0') << setw(4) << hex << pointer;
+	return string("($" + ss.str() + ")");
 }
 
 
