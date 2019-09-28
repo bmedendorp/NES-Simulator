@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <stdexcept>
 
-PPU::PPU() : screen{ {256, 240}, {256, 240} }, patternTable{ {128, 128}, {128, 128} }
+PPU::PPU() : screen{ {256, 240}, {256, 240} }
 {
 	scanline = -1;
 	cycle = 0;
@@ -24,6 +24,10 @@ PPU::PPU() : screen{ {256, 240}, {256, 240} }, patternTable{ {128, 128}, {128, 1
 	patternTable1 = chrROM + SIZE_4K;
 	MapNametables(nametableType);
 
+	for (int i = 0; i < 28; i++)
+	{
+		colorData[i] = 0;
+	}
 	*paletteRAM[0] = 0x0d;
 	*paletteRAM[1] = 0x02;
 	*paletteRAM[2] = 0x06;
@@ -90,10 +94,11 @@ bool PPU::Clock()
 	return result;
 }
 
-const olc::Sprite* PPU::GetPatternTable(uint8_t paletteIndex, bool left)
+const olc::Sprite* PPU::GetPatternTable(uint8_t paletteIndex, bool left) const
 {
+	static olc::Sprite sprite(128, 128);
+	olc::Pixel* display = sprite.GetData();
 	uint8_t* palette = paletteRAM[paletteIndex * 4];
-	olc::Pixel *display = patternTable[left].GetData();
 	uint8_t* patternTable = left ? patternTable0 : patternTable1;
 
 	int tableIndex = 0;
@@ -117,7 +122,13 @@ const olc::Sprite* PPU::GetPatternTable(uint8_t paletteIndex, bool left)
 		}
 	}
 
-	return &this->patternTable[left];
+	return &sprite;
+}
+
+olc::Pixel PPU::GetPaletteColor(int palette, int index) const
+{
+	uint8_t colorIndex = *paletteRAM[palette * 4 + index];
+	return colors[colorIndex];
 }
 
 void PPU::MapNametables(NametableMapType type)

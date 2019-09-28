@@ -43,6 +43,13 @@ bool NES::OnUserCreate()
 
 bool NES::OnUserUpdate(float fElapsedTime)
 {
+	static int currentPalette = 0;
+	olc::HWButton paletteCycle = GetKey(olc::Key::P);
+	if (paletteCycle.bPressed)
+	{
+		currentPalette = ++currentPalette % 8;
+	}
+
 #ifdef DEBUG
 	//olc::HWButton spaceStatus = GetKey(olc::Key::SPACE);
 	//if (spaceStatus.bPressed && cpu && ppu)
@@ -61,8 +68,7 @@ bool NES::OnUserUpdate(float fElapsedTime)
 	Clear(olc::BLUE);
 	DrawSprite(0, 0, ppu->GetScreen(), 2);
 	DisplayRegisters(520, 50);
-	DrawSprite(523, 345, ppu->GetPatternTable(0, true), 1);
-	DrawSprite(660, 345, ppu->GetPatternTable(0, false), 1);
+	DisplayPatternTables(517, 337, currentPalette);
 	return true;
 }
 
@@ -158,6 +164,27 @@ void NES::DisplayRegisters(int32_t x, int32_t y)
 		else
 			DrawString(x + 60, y + 45, "0", olc::GREY);
 	}
+}
+
+void NES::DisplayPatternTables(int32_t x, int32_t y, int8_t paletteIndex)
+{
+	olc::Sprite palette(34, 10);
+	olc::Sprite* target = GetDrawTarget();
+
+	for (int i = 0; i < 8; i++)
+	{
+		SetDrawTarget(&palette);
+		i == paletteIndex ? Clear(olc::WHITE) : Clear(olc::BLACK);
+		for (int j = 0; j < 4; j++)
+		{
+			FillRect(j * 8 + 1, 1, 8, 8, ppu->GetPaletteColor(i, j));
+		}
+		SetDrawTarget(target);
+		DrawSprite(x + i * 35, y, &palette);
+	}
+
+	DrawSprite(x + 7, y + 12, ppu->GetPatternTable(paletteIndex, true), 1);
+	DrawSprite(x + 137 + 7, y + 12, ppu->GetPatternTable(paletteIndex, false), 1);
 }
 
 //void NES::DisplayCode(int32_t x, int32_t y, const CPU_6502::DisassembleInfo* data, uint8_t lines, uint16_t pc)

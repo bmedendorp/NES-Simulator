@@ -26,11 +26,11 @@ public:
 	uint8_t* GetChrROMBuffer();
 	const olc::Sprite* GetScreen() const;
 	bool Clock();
-	const olc::Sprite* GetPatternTable(uint8_t palette, bool left = true);
+	const olc::Sprite* GetPatternTable(uint8_t palette, bool left = true) const;
+	olc::Pixel GetPaletteColor(int palette, int index) const;
 
 private:
 	olc::Sprite screen[2];
-	olc::Sprite patternTable[2];
 	int backBuffer;
 
 	int16_t scanline;
